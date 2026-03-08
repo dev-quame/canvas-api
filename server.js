@@ -6,6 +6,7 @@ const connectDB = require("./config/db");
 const app = express();
 
 app.set("trust proxy", 1);
+app.disable("x-powered-by");
 
 const parseOrigins = (value) =>
   (value || "")
@@ -19,6 +20,8 @@ const allowedOrigins = new Set([
   ...parseOrigins(process.env.ClIENT_URL), // typo fallback for old env var
   "https://quaminaelvin.com",
   "https://www.quaminaelvin.com",
+  "https://dev-quame.github.io",
+  "https://quaminaelvin.github.io",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
 ]);
@@ -37,6 +40,12 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json({ limit: "100kb" }));
+app.use((_, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  next();
+});
 
 connectDB();
 
@@ -45,6 +54,22 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.use("/api/forms", require("./routes/formRoutes"));
+
+app.use((err, _req, res, next) => {
+  if (!err) {
+    return next();
+  }
+
+  if (err.type === "entity.parse.failed") {
+    return res.status(400).json({ error: "Invalid JSON payload." });
+  }
+
+  if (err.message === "Origin not allowed by CORS") {
+    return res.status(403).json({ error: "Origin not allowed." });
+  }
+
+  return res.status(500).json({ error: "Unexpected server error." });
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

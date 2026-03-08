@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "check": "node --check server.js && node --check controllers/formController.js && node --check utils/sendEmail.js && node --check routes/formRoutes.js && node --check middleware/rateLimiter.js && node --check config/db.js"
   },
   "keywords": [],
   "author": "",
